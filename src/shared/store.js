@@ -21,6 +21,7 @@ export const DEFAULT_CLICKUP = {
   defaultTask: null, // { id, name, url, list }
   toolTasks: {}, // { [toolId]: task }
   markOvertime: true,
+  sendDescriptions: false, // descriptions count as ClickUp "Advanced Time Tracking" (limited on most plans)
   lastSync: null, // { at, day, count }
 };
 

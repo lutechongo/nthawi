@@ -185,11 +185,22 @@ function ClickUpSection({ data, toast }) {
       </div>
       <div className="row" style={{ gap: 16 }}>
         <div className="grow">
-          <div style={{ fontWeight: 500 }}>Mark overtime entries</div>
-          <div className="caption">Adds "· Overtime" to the description of entries tracked mostly outside working hours.</div>
+          <div style={{ fontWeight: 500 }}>Add session names as descriptions</div>
+          <div className="caption">
+            e.g. "MLFC – back office (Figma)". ClickUp counts entry descriptions as Advanced Time Tracking, which is capped on most plans (40 uses on Unlimited, shared across the whole workspace). Off: entries are logged with just the task, start and duration, which works on every plan. If ClickUp refuses a description, Nthawi sends the entry without it and turns this off.
+          </div>
         </div>
-        <Toggle on={cu.markOvertime} label="Mark overtime entries" onChange={(on) => update({ markOvertime: on })} />
+        <Toggle on={cu.sendDescriptions} label="Add session names as descriptions" onChange={(on) => update({ sendDescriptions: on })} />
       </div>
+      {cu.sendDescriptions && (
+        <div className="row" style={{ gap: 16 }}>
+          <div className="grow">
+            <div style={{ fontWeight: 500 }}>Mark overtime entries</div>
+            <div className="caption">Adds "· Overtime" to the description of entries tracked mostly outside working hours.</div>
+          </div>
+          <Toggle on={cu.markOvertime} label="Mark overtime entries" onChange={(on) => update({ markOvertime: on })} />
+        </div>
+      )}
     </Section>
   );
 }

@@ -582,6 +582,7 @@ const netHandlers = {
     const { sessions, clickup: cu, settings } = await readAll();
     if (!cu.token || !cu.teamId) throw new Error('Connect ClickUp in Settings first.');
     const wh = workHours(settings);
+    let useDesc = !!cu.sendDescriptions;
     const list = sessions.filter((s) => sessionIds.includes(s.id) && s.end != null && !s.clickup);
     const sent = [];
     const failed = [];
@@ -595,13 +596,24 @@ const netHandlers = {
       const split = splitSession(s, wh);
       const ot = cu.markOvertime && split.overtime >= split.active / 2;
       try {
-        const entryId = await createTimeEntry(cu.token, cu.teamId, {
-          description: `${s.title} (${tool.name})${ot ? ' · Overtime' : ''}`,
-          start: s.start,
-          duration: Math.round(sessionDuration(s)),
-          billable: false,
-          tid: task.id,
-        });
+        // A basic entry (task + start + duration) works on every plan. Descriptions and the
+        // billable flag are ClickUp "Advanced Time Tracking", capped on most plans.
+        const entry = { start: s.start, duration: Math.round(sessionDuration(s)), tid: task.id };
+        if (useDesc) entry.description = `${s.title} (${tool.name})${ot ? ' · Overtime' : ''}`;
+        let entryId;
+        try {
+          entryId = await createTimeEntry(cu.token, cu.teamId, entry);
+        } catch (e) {
+          if (!useDesc || !/advanced time tracking/i.test(e.message)) throw e;
+          // Over the plan's limit: fall back to plain entries from now on.
+          useDesc = false;
+          delete entry.description;
+          entryId = await createTimeEntry(cu.token, cu.teamId, entry);
+          await tx(async (st) => {
+            st.clickup.sendDescriptions = false;
+            st.dirty.add('clickup');
+          });
+        }
         sent.push({ id: s.id, entryId, taskId: task.id, taskName: task.name });
       } catch (e) {
         failed.push({ id: s.id, error: e.message });
@@ -626,7 +638,7 @@ const netHandlers = {
 
 Object.assign(handlers, {
   async 'clickup:update'(st, { patch }) {
-    const allowed = ['teamId', 'defaultTask', 'toolTasks', 'markOvertime'];
+    const allowed = ['teamId', 'defaultTask', 'toolTasks', 'markOvertime', 'sendDescriptions'];
     for (const k of allowed) if (k in patch) st.clickup[k] = patch[k];
     st.dirty.add('clickup');
   },

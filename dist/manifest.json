@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Nthawi",
   "short_name": "Nthawi",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Time tracking without the stress. Nthawi quietly logs your focused time in Figma, Meet, Docs and more, so you never have to.",
   "minimum_chrome_version": "120",
   "icons": {
