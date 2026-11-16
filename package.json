@@ -1,0 +1,21 @@
+{
+  "name": "nthawi",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Nthawi: time tracking without the stress. Quietly logs your focused time in the web tools you work in.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite build --watch --mode development",
+    "build": "vite build",
+    "icons": "python3 scripts/make_icons.py"
+  },
+  "dependencies": {
+    "@fontsource-variable/inter": "^5.2.8",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "vite": "^5.4.0"
+  }
+}
