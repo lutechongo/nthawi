@@ -75,10 +75,12 @@ function hexA(hex, a) {
 /** { fill, text, chart } for a tool in the current theme. */
 export function toolColors(tool) {
   const p = PALETTES[tool?.palette] || PALETTES.slate;
-  if (currentTheme() === 'dark') return { fill: hexA(p.chart, 0.16), text: p.chart, chart: p.chart };
+  if (currentTheme() === 'dark') return { fill: hexA(p.dark, 0.18), text: p.chart, chart: p.dark };
   return p;
 }
 export function hatchBg(color, strength = 0.45) {
+  // Dark mode: darker stripes, so bars don't glare on a near-black card.
+  if (currentTheme() === 'dark') return `repeating-linear-gradient(-45deg, rgba(0,0,0,.22) 0 3px, transparent 3px 7px), ${color}`;
   return `repeating-linear-gradient(-45deg, rgba(255,255,255,${strength}) 0 3px, transparent 3px 7px), ${color}`;
 }
 
@@ -101,28 +103,18 @@ export function initials(name) {
 // Components
 
 /** The Nthawi mark: an hourglass whose lower half fills with the app's hatching. */
-export function Logo({ size = 24 }) {
-  const id = useId().replace(/:/g, '');
-  const solid = size < 28;
+/** The stopwatch mark. `spin` turns the hand once a minute (while tracking). */
+export function Logo({ size = 24, spin = false, dark }) {
+  const isDark = dark ?? currentTheme() === 'dark';
+  const ring = isDark ? '#8E82EE' : '#A497F2';
+  const hand = isDark ? '#D4CCFF' : '#3D2B9E';
   return (
-    <svg width={size} height={size} viewBox="0 0 100 100" role="img" aria-label="Nthawi" style={{ flex: 'none', display: 'block' }}>
-      <rect x="2" y="2" width="96" height="96" rx="24" fill="#6E5FD8" />
-      <defs>
-        <clipPath id={`lo${id}`}>
-          <path d="M50 52 L71 76 L29 76 Z" />
-        </clipPath>
-      </defs>
-      {solid ? (
-        <path d="M50 52 L71 76 L29 76 Z" fill="#fff" />
-      ) : (
-        <g clipPath={`url(#lo${id})`}>
-          {[14, 23, 32, 41, 50, 59, 68, 77].map((x) => (
-            <line key={x} x1={x} y1="80" x2={x + 30} y2="44" stroke="#fff" strokeWidth="4" />
-          ))}
-        </g>
-      )}
-      <path d="M29 24 L50 50 L71 76 M71 24 L50 50 L29 76" fill="none" stroke="#fff" strokeWidth={solid ? 8 : 6} strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M22 24 H78 M22 76 H78" stroke="#fff" strokeWidth={solid ? 8 : 6} strokeLinecap="round" />
+    <svg width={size} height={size} viewBox="50 73 400 400" role="img" aria-label="Nthawi" style={{ flex: 'none', display: 'block' }}>
+      <circle cx="250.5" cy="304" r="146.5" fill="none" stroke={ring} strokeWidth="30" />
+      <path d="M246.9 97 A207 207 0 0 1 399.4 160.2" fill="none" stroke={hand} strokeWidth="30" strokeLinecap="round" />
+      <path d="M256 303 L321 238" fill="none" stroke={hand} strokeWidth="30" strokeLinecap="round">
+        {spin && !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches && <animateTransform attributeName="transform" type="rotate" from="0 250.5 304" to="360 250.5 304" dur="60s" repeatCount="indefinite" />}
+      </path>
     </svg>
   );
 }
@@ -206,6 +198,18 @@ export function ToolTag({ tool, short = false, style }) {
     <span className="tag" style={{ background: c.fill, color: c.text, paddingLeft: 6, ...style }}>
       <ToolIcon tool={tool} size={14} dot={6} style={{ margin: 0 }} />
       {short ? tool.short || tool.name : tool.name}
+    </span>
+  );
+}
+
+/** A project label: small coloured square + name. */
+export function ProjectTag({ project, style }) {
+  if (!project) return null;
+  const c = toolColors(project);
+  return (
+    <span className="tag" style={{ background: 'transparent', color: 'var(--text-2)', border: '1px solid var(--border)', paddingLeft: 6, ...style }} title={`Project: ${project.name}`}>
+      <span style={{ width: 8, height: 8, borderRadius: 2, background: c.text, flex: 'none' }} />
+      {project.name}
     </span>
   );
 }
@@ -477,4 +481,19 @@ export function downloadFile(name, content, type) {
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
+/**
+ * Ask Chrome for access to custom sites so nudges can appear inside them.
+ * Must be called straight from a click (before any await). Declining is fine: tracking still works.
+ */
+export function requestSiteAccess(domains) {
+  try {
+    const hosts = [...new Set(domains.map((d) => String(d).replace(/^https?:\/\//, '').split('/')[0].replace(/^\*\./, '').toLowerCase()).filter((h) => /\./.test(h)))];
+    if (!hosts.length || !chrome?.permissions?.request) return Promise.resolve(false);
+    const origins = hosts.flatMap((h) => [`https://${h}/*`, `https://*.${h}/*`]);
+    return chrome.permissions.request({ origins }).catch(() => false);
+  } catch {
+    return Promise.resolve(false);
+  }
 }

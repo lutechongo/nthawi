@@ -2,12 +2,13 @@ import { useLayoutEffect, useRef, useState } from 'react';
 import { sessionDuration } from '../../shared/store.js';
 import { byDay, byTool, total, inRange, summary, idleInRange, pctChange } from '../../shared/stats.js';
 import { trackerView } from '../../shared/view.js';
-import { overtimeOf, dayWindows, phaseAt } from '../../shared/schedule.js';
+import { overtimeOf, dayWindows, phaseAt, dayOff } from '../../shared/schedule.js';
+import { byProject } from '../../shared/projects.js';
 import {
   HOUR, DAY, startOfDay, addDays, fmtClock, fmtHM, fmtHMS, fmtHoursDec, fmtLongHM, weekdayShort, weekdayLong, fmtWeekdayDayMonth, fmtRangeLabel, rangeDays, rangeFor, previousRange,
 } from '../../shared/time.js';
 import { Icon } from '../../ui/icons.jsx';
-import { ToolTag, ToolIcon, ChangeBadge, toolColors, hatchBg } from '../../ui/kit.jsx';
+import { ToolTag, ToolIcon, ChangeBadge, toolColors, hatchBg, Segmented } from '../../ui/kit.jsx';
 import { useApp } from '../App.jsx';
 
 function useSize() {
@@ -207,7 +208,7 @@ export function Timeline24({ sessions }) {
         {[1, 2, 3, 4, 5].map((i) => (
           <span key={i} style={{ position: 'absolute', top: 8, bottom: 8, left: `${(i / 6) * 100}%`, borderLeft: '1px dashed var(--border-2)' }} />
         ))}
-        {sessions.map((s) => {
+        {sessions.map((s, i) => {
           const a = Math.max(s.start, day0);
           const b = Math.min(s.end ?? now, day0 + DAY);
           const c = toolColors(tool(s.toolId)).chart;
@@ -219,11 +220,12 @@ export function Timeline24({ sessions }) {
                 const p = e.currentTarget.parentElement.getBoundingClientRect();
                 setTip({ x: r.left - p.left + r.width / 2, s });
               }}
-              style={{ position: 'absolute', top: 10, bottom: 10, left: `${pct(a)}%`, width: `max(3px, calc(${pct(b) - pct(a)}% - 2px))`, borderRadius: 4, background: hatchBg(c), cursor: 'default' }}
+              className="bar-grow"
+              style={{ position: 'absolute', top: 10, bottom: 10, left: `${pct(a)}%`, width: `max(3px, calc(${pct(b) - pct(a)}% - 2px))`, borderRadius: 4, background: hatchBg(c), cursor: 'default', animationDelay: `${0.35 + Math.min(i, 20) * 0.03}s` }}
             />
           );
         })}
-        <span style={{ position: 'absolute', top: 4, bottom: 4, left: `${pct(now)}%`, width: 2, borderRadius: 2, background: 'var(--accent)' }} title={`Now ${fmtClock(now)}`} />
+        <span className="now-glow" style={{ position: 'absolute', top: 4, bottom: 4, left: `${pct(now)}%`, width: 2, borderRadius: 2, background: 'var(--accent)' }} title={`Now ${fmtClock(now)}`} />
         {tip && (
           <div className="tip" style={{ left: tip.x, top: -8, transform: 'translate(-50%, -100%)' }}>
             <b style={{ fontWeight: 600 }}>{tool(tip.s.toolId).name}</b>
@@ -251,6 +253,10 @@ export function Timeline24({ sessions }) {
 
 function RangeStrip({ range }) {
   const { data, now, wh } = useApp();
+  const offLabel = (d) => {
+    const o = dayOff(d, wh);
+    return o ? (o.kind === 'holiday' ? o.note || 'Holiday' : o.note || 'Leave') : null;
+  };
   const sessions = inRange(data.sessions, range);
   const ot = overtimeOf(sessions, wh, now);
   const days = byDay(sessions, range, now);
@@ -277,8 +283,8 @@ function RangeStrip({ range }) {
                   <span style={{ fontSize: 12, lineHeight: '16px', opacity: isToday ? 0.85 : 0.75 }}>{weekdayShort(d.day)}</span>
                   <span style={{ fontSize: 16, lineHeight: '24px', fontWeight: 600 }}>{new Date(d.day).getDate()}</span>
                 </button>
-                <span className="caption tnum" style={{ color: d.ms ? 'var(--text-2)' : 'var(--text-3)' }}>
-                  {d.ms ? fmtHM(d.ms) : '—'}
+                <span className="caption tnum ellipsis" style={{ color: d.ms ? 'var(--text-2)' : offLabel(d.day) ? 'var(--accent)' : 'var(--text-3)', maxWidth: '100%' }} title={offLabel(d.day) || ''}>
+                  {d.ms ? fmtHM(d.ms) : offLabel(d.day) || '—'}
                 </span>
               </div>
             );
@@ -313,6 +319,7 @@ export function TrendCard() {
   const range = { start: addDays(today, -6), end: addDays(today, 1) };
   const days = byDay(inRange(data.sessions, range), range, now);
   const todayMs = days[6].ms;
+  const goalMs = (data.settings.dailyGoalHours || 0) * HOUR;
   // Only compare against a real day of work; tiny baselines produce silly percentages.
   const change = days[5].ms >= 30 * 60000 ? pctChange(todayMs, days[5].ms) : null;
   const [ref, w] = useWidth();
@@ -322,7 +329,7 @@ export function TrendCard() {
   const padL = 28;
   const padT = 12;
   const padB = 24;
-  const maxH = niceMax(Math.max(...days.map((d) => d.ms)) / HOUR);
+  const maxH = niceMax(Math.max(goalMs, ...days.map((d) => d.ms)) / HOUR);
   const iw = Math.max(10, w - padL - 8);
   const x = (i) => padL + 8 + (i / 6) * (iw - 8);
   const y = (ms) => padT + (1 - ms / HOUR / maxH) * (H - padT - padB);
@@ -337,8 +344,14 @@ export function TrendCard() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
         <span className="caption">Today total time</span>
         <span style={{ fontSize: 28, lineHeight: '36px', fontWeight: 600, color: 'var(--accent)' }}>{fmtLongHM(todayMs)}</span>
-        <div style={{ marginTop: 8, minHeight: 22 }}>
+        <div className="row" style={{ marginTop: 8, minHeight: 22, gap: 8, flexWrap: 'wrap' }}>
           <ChangeBadge change={change} suffix=" vs yesterday" />
+          {goalMs > 0 && (
+            <span className="badge" style={{ background: 'var(--accent-tint)', color: 'var(--accent)' }} title="Your daily focus goal (Settings → Nudges & goal)">
+              <Icon name="target" size={12} />
+              {todayMs >= goalMs ? 'Goal reached' : `${Math.round((todayMs / goalMs) * 100)}% of ${data.settings.dailyGoalHours}h goal`}
+            </span>
+          )}
         </div>
       </div>
       <div ref={ref} style={{ position: 'relative', height: H }} onMouseLeave={() => setHover(null)}>
@@ -358,8 +371,14 @@ export function TrendCard() {
                 </text>
               </g>
             ))}
-            <path d={area} fill="url(#trendFill)" />
-            <path d={path} fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" />
+            {goalMs > 0 && (
+              <g>
+                <line x1={padL} x2={w} y1={y(goalMs)} y2={y(goalMs)} stroke="var(--on-dot)" strokeDasharray="2 4" strokeWidth="1.5" />
+                <text x={w} y={y(goalMs) - 4} fontSize="10" textAnchor="end" fill="var(--on-text)">goal</text>
+              </g>
+            )}
+            <path className="fade-in" style={{ animationDelay: '1.1s' }} d={area} fill="url(#trendFill)" />
+            <path className="draw-line" pathLength="1" d={path} fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" />
             <line x1={pts[hi][0]} x2={pts[hi][0]} y1={pts[hi][1]} y2={H - padB} stroke="var(--accent)" strokeDasharray="3 3" />
             {hover == null && <line x1={pts[6][0]} x2={w} y1={pts[6][1]} y2={pts[6][1]} stroke="var(--accent)" strokeOpacity=".5" strokeDasharray="3 4" />}
             {pts.map(([px, py], i) => (
@@ -417,34 +436,63 @@ function smoothPath(pts) {
 // Time by tool
 
 export function ToolsCard({ sessions, sub }) {
-  const { now, tool } = useApp();
-  const rows = byTool(sessions, now).filter((r) => r.ms > 0);
+  const { now, tool, data } = useApp();
+  const projects = data.settings.projects;
+  const [mode, setMode] = useState(() => localStorage.getItem('at-split') || 'tool');
+  const hasProjects = projects.some((p) => !p.archived);
+  const by = hasProjects ? mode : 'tool';
+  let rows;
+  if (by === 'project') {
+    const raw = byProject(sessions, projects, (s) => sessionDuration(s, now)).filter((r) => r.ms > 0);
+    const sum = raw.reduce((t, r) => t + r.ms, 0);
+    rows = raw.map((r) => {
+      const p = projects.find((x) => x.id === r.projectId);
+      const item = p || { id: 'none', name: 'No project', palette: 'slate' };
+      return { key: item.id, item, ms: r.ms, pct: sum ? Math.round((r.ms / sum) * 100) : 0, isProject: true };
+    });
+  } else {
+    rows = byTool(sessions, now)
+      .filter((r) => r.ms > 0)
+      .map((r) => ({ key: r.toolId, item: tool(r.toolId), ms: r.ms, pct: r.pct, isProject: false }));
+  }
+  const set = (v) => {
+    setMode(v);
+    try {
+      localStorage.setItem('at-split', v);
+    } catch {
+      /* ignore */
+    }
+  };
   return (
     <section className="card card-pad" style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-      <CardHead title="Time by tool" sub={sub || `Active time across ${rows.length} ${rows.length === 1 ? 'tool' : 'tools'}`} />
+      <CardHead
+        title={by === 'project' ? 'Time by project' : 'Time by tool'}
+        sub={sub || `Active time across ${rows.length} ${by === 'project' ? (rows.length === 1 ? 'project' : 'projects') : rows.length === 1 ? 'tool' : 'tools'}`}
+        right={hasProjects && <Segmented value={by} onChange={set} options={[{ value: 'tool', label: 'Tools' }, { value: 'project', label: 'Projects' }]} style={{ padding: 2, gap: 2 }} />}
+      />
       <div style={{ display: 'flex', gap: 4, height: 28 }}>
         {rows.length ? (
-          rows.map((r) => <span key={r.toolId} title={`${tool(r.toolId).name} · ${r.pct}%`} style={{ flex: `${Math.max(r.ms, 1)} 1 0`, minWidth: 6, borderRadius: 6, background: hatchBg(toolColors(tool(r.toolId)).chart) }} />)
+          rows.map((r) => {
+            const c = toolColors(r.item);
+            return <span key={r.key} title={`${r.item.name} · ${r.pct}%`} className="bar-grow" style={{ animationDelay: '.45s', flex: `${Math.max(r.ms, 1)} 1 0`, minWidth: 6, borderRadius: 6, background: hatchBg(r.isProject ? c.text : c.chart, r.isProject ? 0.35 : 0.45) }} />;
+          })
         ) : (
           <span style={{ flex: 1, borderRadius: 6, background: 'var(--track)' }} />
         )}
       </div>
       <div style={{ display: 'flex', flexDirection: 'column' }}>
-        {rows.map((r) => {
-          const t = tool(r.toolId);
-          return (
-            <div key={r.toolId} className="list-row">
-              <ToolIcon tool={t} size={18} dot={8} />
-              <span className="grow ellipsis">{t.name}</span>
-              <span className="caption faint tnum" style={{ color: 'var(--text-3)', width: 40, textAlign: 'right' }}>
-                {r.pct}%
-              </span>
-              <span className="tnum" style={{ fontWeight: 600, width: 72, textAlign: 'right' }}>
-                {fmtHM(r.ms)}
-              </span>
-            </div>
-          );
-        })}
+        {rows.map((r) => (
+          <div key={r.key} className="list-row">
+            {r.isProject ? <span style={{ width: 10, height: 10, borderRadius: 3, background: toolColors(r.item).text, margin: 4 }} /> : <ToolIcon tool={r.item} size={18} dot={8} />}
+            <span className="grow ellipsis">{r.item.name}</span>
+            <span className="caption faint tnum" style={{ color: 'var(--text-3)', width: 40, textAlign: 'right' }}>
+              {r.pct}%
+            </span>
+            <span className="tnum" style={{ fontWeight: 600, width: 72, textAlign: 'right' }}>
+              {fmtHM(r.ms)}
+            </span>
+          </div>
+        ))}
         {!rows.length && <p className="muted">No tracked time in this period.</p>}
       </div>
     </section>
@@ -469,7 +517,7 @@ export function FocusCard({ range }) {
         <div style={{ position: 'relative', width: 230, height: 130 }}>
           <svg width="230" height="130" viewBox="0 0 230 130">
             <path d={`M 25 115 A ${R} ${R} 0 0 1 205 115`} fill="none" stroke="var(--track-2)" strokeWidth="20" strokeLinecap="round" />
-            {pct > 0 && <path d={`M 25 115 A ${R} ${R} 0 0 1 205 115`} fill="none" stroke="var(--accent)" strokeWidth="20" strokeLinecap="round" strokeDasharray={`${(pct / 100) * C} ${C}`} />}
+            {pct > 0 && <path className="ring-in" d={`M 25 115 A ${R} ${R} 0 0 1 205 115`} fill="none" stroke="var(--accent)" strokeWidth="20" strokeLinecap="round" strokeDasharray={`${(pct / 100) * C} ${C}`} />}
           </svg>
           <div style={{ position: 'absolute', left: 0, right: 0, top: 58, textAlign: 'center' }}>
             <div className="caption">Active</div>

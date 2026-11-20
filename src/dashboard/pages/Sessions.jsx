@@ -45,6 +45,7 @@ export default function Sessions() {
         grouped
         showSearch
         initialTool={params.get('tool') || 'all'}
+        initialProject={params.get('project') || 'all'}
         maxDays={14}
         title={label}
         sub={`${fmtRangeLabel(range)} · ${n} ${n === 1 ? 'session' : 'sessions'}`}

@@ -30,8 +30,9 @@
   --danger-border: #f6d9da;
   --danger: #c9474b;
   --danger-solid: #e05257;
-  --nav-active-bg: #14141f;
+  --nav-active-bg: #5546c2;
   --nav-active-text: #ffffff;
+  --nav-hover: #f8f7fe;
   --tooltip-bg: #14141f;
   --shadow-card: 0 1px 2px rgba(20, 20, 31, 0.03), 0 8px 24px rgba(20, 20, 31, 0.03);
   --shadow-pop: 0 24px 48px rgba(20, 20, 31, 0.1), 0 2px 6px rgba(20, 20, 31, 0.04);
@@ -68,8 +69,9 @@
   --danger-bg: #351b1d;
   --danger-border: #4d2427;
   --danger: #f0787b;
-  --nav-active-bg: #ececf3;
-  --nav-active-text: #14141f;
+  --nav-active-bg: #6a5ad8;
+  --nav-active-text: #ffffff;
+  --nav-hover: #25213f;
   --tooltip-bg: #2c2c38;
   --shadow-card: none;
   --shadow-pop: 0 24px 48px rgba(0, 0, 0, 0.45), 0 0 0 1px #282834;
@@ -640,4 +642,116 @@ input[type='range'].slider::-webkit-slider-thumb {
 .scroll-thin::-webkit-scrollbar-thumb {
   background: var(--border-2);
   border-radius: 8px;
+}
+
+/* ---------------------------------------------------------------- Motion
+   Small, calm movements: things settle into place when a page opens, charts draw themselves,
+   live things breathe. All of it switches off when the computer asks for reduced motion. */
+.card {
+  animation: rise 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.grid-3 > .card:nth-child(1),
+.grid-4 > .card:nth-child(1),
+.grid-5 > .card:nth-child(1) {
+  animation-delay: 0.08s;
+}
+.grid-3 > .card:nth-child(2),
+.grid-4 > .card:nth-child(2),
+.grid-5 > .card:nth-child(2) {
+  animation-delay: 0.16s;
+}
+.grid-3 > .card:nth-child(3),
+.grid-4 > .card:nth-child(3),
+.grid-5 > .card:nth-child(3) {
+  animation-delay: 0.24s;
+}
+.grid-4 > .card:nth-child(4),
+.grid-5 > .card:nth-child(4) {
+  animation-delay: 0.32s;
+}
+.grid-5 > .card:nth-child(5) {
+  animation-delay: 0.4s;
+}
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+.grid-3 > .card,
+.grid-4 > .card,
+.grid-5 > .card {
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+.grid-3 > .card:hover,
+.grid-4 > .card:hover,
+.grid-5 > .card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(20, 20, 31, 0.07);
+}
+.fade-in {
+  animation: fade-in 0.6s ease both;
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+.draw-line {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: draw-line 1.3s cubic-bezier(0.4, 0, 0.2, 1) 0.35s forwards;
+}
+@keyframes draw-line {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+.ring-in {
+  animation: ring-in 1.2s cubic-bezier(0.4, 0, 0.2, 1) 0.3s both;
+}
+@keyframes ring-in {
+  from {
+    stroke-dasharray: 0 1000;
+  }
+}
+.bar-grow {
+  transform-origin: left center;
+  animation: bar-grow 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+@keyframes bar-grow {
+  from {
+    transform: scaleX(0);
+  }
+}
+.now-glow {
+  animation: now-glow 2.4s ease-in-out infinite;
+}
+@keyframes now-glow {
+  50% {
+    opacity: 0.4;
+  }
+}
+.badge-on .dot {
+  animation: live-pulse 2s ease-out infinite;
+}
+@keyframes live-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(76, 179, 122, 0.55);
+  }
+  70%,
+  100% {
+    box-shadow: 0 0 0 6px rgba(76, 179, 122, 0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+  .draw-line {
+    stroke-dashoffset: 0;
+  }
 }

@@ -42,10 +42,13 @@ export function trackerView(data, now = Date.now()) {
       label = `Paused, you've been idle for ${idleMin} min`;
       short = 'Paused';
       break;
-    case 'paused':
-      label = 'Paused';
+    case 'paused': {
+      const until = tracker.resumeAt ? new Date(tracker.resumeAt) : null;
+      const hhmm = until ? `${String(until.getHours()).padStart(2, '0')}:${String(until.getMinutes()).padStart(2, '0')}` : '';
+      label = tracker.reason === 'break' ? `On a short break, back at ${hhmm}` : tracker.reason === 'lunch' ? `At lunch until ${hhmm}` : 'Paused';
       short = 'Paused';
       break;
+    }
     default:
       label = 'Tracking OFF';
       short = 'Tracking OFF';

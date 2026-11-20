@@ -2,14 +2,14 @@
 
 // Each palette: fill (tag/tile background), text (tag text), chart (bars/dots).
 export const PALETTES = {
-  lilac: { name: 'Lilac', fill: '#EFEAFD', text: '#6A4FD0', chart: '#B7A5F5' },
-  sage: { name: 'Sage', fill: '#E6F4EC', text: '#2F7D55', chart: '#9BD3B2' },
-  sky: { name: 'Sky', fill: '#E5EFFD', text: '#2F66B8', chart: '#9DBFF2' },
-  apricot: { name: 'Apricot', fill: '#FDEDE3', text: '#B8531F', chart: '#F5B895' },
-  rose: { name: 'Rose', fill: '#FCE8F0', text: '#B23A6B', chart: '#F2A7C4' },
-  teal: { name: 'Teal', fill: '#E2F5F4', text: '#1F7A75', chart: '#8FD3CF' },
-  sun: { name: 'Sun', fill: '#FCF4DC', text: '#8A6A12', chart: '#EED27A' },
-  slate: { name: 'Slate', fill: '#ECEEF3', text: '#4A5468', chart: '#B4BBCB' },
+  lilac: { name: 'Lilac', fill: '#EFEAFD', text: '#6A4FD0', chart: '#B7A5F5', dark: '#7A6CD6' },
+  sage: { name: 'Sage', fill: '#E6F4EC', text: '#2F7D55', chart: '#9BD3B2', dark: '#4F9C77' },
+  sky: { name: 'Sky', fill: '#E5EFFD', text: '#2F66B8', chart: '#9DBFF2', dark: '#5A87CC' },
+  apricot: { name: 'Apricot', fill: '#FDEDE3', text: '#B8531F', chart: '#F5B895', dark: '#C27F5C' },
+  rose: { name: 'Rose', fill: '#FCE8F0', text: '#B23A6B', chart: '#F2A7C4', dark: '#B9668A' },
+  teal: { name: 'Teal', fill: '#E2F5F4', text: '#1F7A75', chart: '#8FD3CF', dark: '#3F9893' },
+  sun: { name: 'Sun', fill: '#FCF4DC', text: '#8A6A12', chart: '#EED27A', dark: '#B39A45' },
+  slate: { name: 'Slate', fill: '#ECEEF3', text: '#4A5468', chart: '#B4BBCB', dark: '#7A8296' },
 };
 
 // Palettes handed out to custom tools, in order.
@@ -52,6 +52,18 @@ export const DEFAULT_WORK_HOURS = {
   lunchIsOvertime: false,
 };
 
+export const DEFAULT_NUDGES = {
+  where: 'tab', // 'tab': a card inside the page you're on · 'system': OS notifications
+  breakEnabled: true,
+  breakMinutes: 90, // continuous focus before suggesting a break
+  water: true,
+  waterMinutes: 45,
+  lunch: true,
+  overtime: true,
+};
+
+export const PROJECT_PALETTES = ['lilac', 'teal', 'apricot', 'sky', 'rose', 'sage', 'sun', 'slate'];
+
 export const DEFAULT_END_OF_DAY = {
   enabled: true,
   time: '17:30',
@@ -72,11 +84,21 @@ export const DEFAULT_SETTINGS = {
   role: 'designer',
   photo: '',
   theme: 'light',
+  autoStart: true, // switch tracking on when Chrome opens and each new day
   idleMinutes: 2,
   meetIdleMinutes: 10,
   tools: DEFAULT_TOOLS,
   workHours: DEFAULT_WORK_HOURS,
   endOfDay: DEFAULT_END_OF_DAY,
+  projects: [], // [{ id, name, palette, keywords: [], task: ClickUp task | null, archived }]
+  excludes: [], // [{ id, kind: 'url' | 'title', value }] pages that never count
+  leave: [], // [{ date: 'YYYY-MM-DD', kind: 'leave' | 'holiday', note }]
+  holidays: [], // public holidays from Google Calendar: [{ date, name }]
+  vacation: null, // Vacation Tracker iCal: { url, lastSync, error, count }
+  nudges: DEFAULT_NUDGES,
+  dailyGoalHours: 6,
+  weeklyRecap: true,
+  standup: { reminder: true, time: '08:45' },
 };
 
 // Tracking tunables.

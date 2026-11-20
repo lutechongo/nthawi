@@ -59,6 +59,63 @@ Time counts when all of these are true:
 - **Export CSV** for the selected range.
 - **Copy summary for ClickUp**: a plain-text time log, for the selected sessions or everything shown.
 
+## New in 1.5
+
+- **New logo:** a purple stopwatch (light-purple ring, deep-purple hand and crown). In the sidebar and popup its hand turns once a minute while Nthawi is counting.
+- **A greeting that types itself out** in Newsreader, a calm serif, with a blinking cursor, next to your photo. Greetings change with the moment, and only some use your name.
+- **Subtle motion:** cards settle into place when a page opens, charts draw themselves, the "Tracking ON" dot breathes, the "now" marker on the timeline glows, goal rings fill, and cards lift a little on hover. Everything stays still if your computer is set to reduce motion.
+- **Dark mode charts** use deeper, muted versions of the pastels with darker hatching, so they sit in the dark instead of glaring.
+- Softer hover colour in the sidebar; pastel icons on the onboarding role cards.
+
+## New in 1.4
+
+- **Starts on its own.** Tracking switches on when Chrome opens and at the start of each new day. "Stop for today" is respected until tomorrow. Turn it off in Settings → Start automatically.
+- **Sessions grouped by app.** "By app" folds hundreds of tab switches into one line per app, then one line per file or meeting with its visit count. Open a line to see each visit, rename all visits at once, or merge them. "Every visit" shows the full list.
+- **A greeting that fits the moment** on the Overview (morning, back from lunch, goal reached, wrapping up, Friday…) using the name you want to be called.
+- **"What should I call you?"** replaces the full-name field in onboarding and Settings.
+- **Nudges inside your tab.** Break, water, lunch and overtime nudges appear as a small card in the top-right of the page you're on, with actions: take a 5-minute break (tracking pauses and resumes itself), pause for lunch, or stop for today. Preview each one in Settings. You can switch back to system notifications.
+- **Vacation Tracker.** Paste your personal calendar link in Settings → Days off. Approved leave and your location's public holidays (Zambia included) sync a few times a day. No admin rights needed.
+- **Real Meet names.** Meet sessions take the meeting's name from the call itself. The Meet home page no longer counts.
+- Violet sidebar with name bubbles when collapsed; "Dashboard" is now "Overview"; Settings is centered.
+- The Google Calendar & Sheets section is gone from Settings (it needed Workspace admin approval).
+
+### Find your Vacation Tracker link
+
+Vacation Tracker → My Profile → Calendar sync (or Export to calendar) → copy the iCal link. Chrome will ask once for access to that address when you click Connect.
+
+## New in 1.3
+
+- **Projects** (Manage → Projects). Each project has keywords that group sessions across tools, and can have its own ClickUp task. There's a Tools/Projects switch on the dashboard, project filters in session lists, and "Move to project" for selected sessions.
+- **Smarter ClickUp.** Once you send a session name to a task, the same name goes to the same task automatically next time. Otherwise the order is project task → tool task → default task.
+- **Merge and split sessions.**
+- **Pages not counted.** Use "Don't count this page" in the popup, or add rules by address or title words in Settings.
+- **Gentle nudges:**
+  - a break reminder after a long stretch without one
+  - a lunch reminder
+  - a one-time heads-up when you go into overtime
+  - a stand-up reminder each working morning
+  - a weekly recap on your last working day
+- **Daily focus goal** (default 6h), shown as a ring in the popup and a line on the trend chart.
+- **Days off.** Leave and public holidays are excluded from reminders, and any work on those days counts as overtime.
+- **Reports:**
+  - **Stand-up**: "What I did" written from your tracked time, today's plan with suggestions, blockers, a large Meeting view, and an optional AI rewrite.
+  - **Weekly recap.**
+  - **Monthly overtime report**, printable or as CSV.
+- **Google** (optional, needs your own OAuth client ID):
+  - names Meet sessions after their calendar events
+  - adds Zambian public holidays
+  - shows today's meetings in your stand-up
+  - keeps a live "Nthawi time log" Google Sheet, updated at the end of each day
+- **AI stand-up writer** (optional, needs your own Claude API key).
+
+### Google setup (about 10 minutes)
+
+1. Go to console.cloud.google.com and create a project.
+2. Under APIs & Services → Library, enable the **Google Calendar API**, **Google Sheets API** and **Google Drive API**.
+3. On the OAuth consent screen, choose External and add yourself as a **test user**.
+4. Under Credentials, create an **OAuth client ID** of type **Web application**. Set its authorized redirect URI to `https://haikganfakhkdeagbfpabeibbaohimff.chromiumapp.org/`. Settings → Google shows this address too.
+5. Paste the client ID in Settings → Google and click Connect.
+
 ## New in 1.2
 
 - Renamed to **Nthawi**, with a new hourglass icon.
@@ -137,7 +194,9 @@ All of it lives in your Chrome profile on this computer. Nothing leaves the devi
 | `idle` | Pause the timer while you're away |
 | `alarms` | Run the 30-second heartbeat |
 | `storage`, `unlimitedStorage` | Keep your history on the device |
-| `notifications` | The end-of-day check-in |
+| `notifications` | The end-of-day check-in, and nudges when a page can't show them |
+| `scripting` + the tracked sites | Show nudges inside the page you're on, and read a Meet call's name |
+| Optional: other sites | Asked only when you add a custom site or connect Vacation Tracker |
 | `favicon` | Show app logos from Chrome's own icon cache |
 | `https://api.clickup.com/*` | Send time entries to ClickUp, only once you connect it |
 

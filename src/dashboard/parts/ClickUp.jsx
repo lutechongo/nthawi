@@ -5,6 +5,7 @@ import { fmtClock, fmtHM, toDateInput, fromDayKey, startOfDay, addDays, weekdayL
 import { Icon } from '../../ui/icons.jsx';
 import { Checkbox, Modal, ToolTag } from '../../ui/kit.jsx';
 import { useApp } from '../App.jsx';
+import { clickupTaskFor } from '../../shared/projects.js';
 
 export function ClickUpMark({ size = 16 }) {
   // Neutral "timesheet" glyph (we don't redraw ClickUp's logo).
@@ -95,12 +96,14 @@ export function ClickUpDialog({ day: initialDay, onClose }) {
   const running = list.find((s) => s.end == null);
   useEffect(() => setPicked(new Set(sendable.map((s) => s.id))), [day]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const taskOf = (s) => overrides[s.id] || cu.toolTasks?.[s.toolId] || cu.defaultTask || null;
+  const projects = data.settings.projects;
+  const pick = (s) => clickupTaskFor(s, cu, projects, overrides[s.id]);
+  const taskOf = (s) => pick(s).task;
   const known = useMemo(() => {
     const m = new Map();
-    for (const t of [cu.defaultTask, ...Object.values(cu.toolTasks || {}), ...extra]) if (t) m.set(t.id, t);
+    for (const t of [cu.defaultTask, ...Object.values(cu.toolTasks || {}), ...projects.map((p) => p.task), ...Object.values(cu.memory || {}), ...extra]) if (t) m.set(t.id, t);
     return [...m.values()];
-  }, [cu, extra]);
+  }, [cu, extra, projects]);
 
   const chosen = sendable.filter((s) => picked.has(s.id));
   const missing = chosen.filter((s) => !taskOf(s));
@@ -229,6 +232,7 @@ export function ClickUpDialog({ day: initialDay, onClose }) {
                 ) : picking === s.id ? (
                   <TaskPicker value={null} compact allowClear={false} onChange={(task) => { setTask([s.id], task); setPicking(null); }} />
                 ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
                   <select className={`input ${!t && picked.has(s.id) ? 'error' : ''}`} style={{ height: 34, background: 'var(--card)', border: t ? '1px solid var(--border)' : undefined, fontSize: 13 }} value={t?.id || ''} onChange={(e) => {
                     if (e.target.value === '__new') return setPicking(s.id);
                     setTask([s.id], known.find((k) => k.id === e.target.value) || null);
@@ -237,6 +241,12 @@ export function ClickUpDialog({ day: initialDay, onClose }) {
                     {known.map((k) => <option key={k.id} value={k.id}>{k.name}</option>)}
                     <option value="__new">Another task…</option>
                   </select>
+                  {t && pick(s).why && pick(s).why !== 'chosen' && (
+                    <span className="caption" style={{ fontSize: 11 }}>
+                      {pick(s).why === 'remembered' ? 'Used last time for this session' : pick(s).why === 'default' ? 'Your default task' : pick(s).why === 'tool' ? `${tool(s.toolId).name}'s task` : `From ${pick(s).why}`}
+                    </span>
+                  )}
+                  </div>
                 )}
               </div>
             </div>

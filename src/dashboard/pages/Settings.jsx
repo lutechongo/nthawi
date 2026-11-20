@@ -11,6 +11,7 @@ import { TaskPicker } from '../parts/ClickUp.jsx';
 import { workHours, hm } from '../../shared/schedule.js';
 import { DEFAULT_END_OF_DAY } from '../../shared/constants.js';
 import { ToolIcon } from '../../ui/kit.jsx';
+import { NudgesSection, LeaveSection, ExcludesSection, AISection } from './SettingsExtra.jsx';
 
 const DAY_LABELS = [
   [1, 'Mon'],
@@ -333,7 +334,7 @@ export default function Settings() {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 880 }}>
+    <div className="settings-wrap" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <Section title="Profile">
         <div className="row" style={{ gap: 16 }}>
           <Avatar settings={s} size={64} radius={14} fontSize={20} />
@@ -356,12 +357,13 @@ export default function Settings() {
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 240px', gap: 24 }}>
           <div className="field" style={{ maxWidth: 320 }}>
-            <label htmlFor="p-name">Full name</label>
+            <label htmlFor="p-name">What should I call you?</label>
             <input
               id="p-name"
               className="input"
               value={name}
-              placeholder="Your name"
+              maxLength={40}
+              placeholder="e.g. Chanda"
               onChange={(e) => setName(e.target.value)}
               onBlur={() => name !== s.name && update({ name: name.trim() })}
               onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
@@ -415,6 +417,12 @@ export default function Settings() {
         </div>
       </Section>
 
+      <Section
+        title="Start automatically"
+        sub={s.autoStart !== false ? "Tracking switches on by itself when Chrome opens and each new day, so you never have to press Start. If you stop it, it stays off until you reopen Chrome (or until tomorrow, if you chose Stop for today)." : 'Tracking only starts when you press Start in the popup.'}
+        right={<Toggle on={s.autoStart !== false} label="Start tracking automatically" onChange={(on) => update({ autoStart: on })} />}
+      />
+
       <Section title="Idle timing" sub="How long without keyboard or mouse activity before the timer pauses.">
         <IdleSlider label="All tools" sub="1 to 10 minutes" min={1} max={10} value={s.idleMinutes} onChange={(v) => update({ idleMinutes: v })} />
         <div className="divider" />
@@ -426,7 +434,15 @@ export default function Settings() {
 
       <WorkHoursSection settings={s} toast={toast} />
 
+      <NudgesSection settings={s} />
+
+      <LeaveSection settings={s} toast={toast} />
+
+      <ExcludesSection settings={s} toast={toast} />
+
       <ClickUpSection data={data} toast={toast} />
+
+      <AISection data={data} toast={toast} />
 
       <Section
         title="Appearance"

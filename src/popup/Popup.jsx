@@ -14,6 +14,7 @@ export default function Popup() {
   const now = useNow(1000);
   const tool = useTools(data?.settings);
   const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState('');
   if (!data) return <div className="pp" />;
 
   const v = trackerView(data, now);
@@ -21,6 +22,7 @@ export default function Popup() {
   const inOvertime = v.mode === 'counting' && phaseAt(now, wh) === 'overtime';
   const today = inRange(data.sessions, rangeFor('today', now));
   const todayTotal = total(today, now);
+  const goalMs = (data.settings.dailyGoalHours || 0) * 3600000;
   const todayOt = overtimeOf(today, wh, now);
   const eodTime = data.settings.endOfDay?.time || '17:30';
   const unsent = today.filter((x) => x.end != null && !x.clickup && sessionDuration(x, now) >= 60000);
@@ -53,7 +55,7 @@ export default function Popup() {
   return (
     <div className="pp">
       <header className="pp-head">
-        <Logo size={20} />
+        <Logo size={22} spin={v.mode === 'counting'} />
         <span style={{ fontWeight: 600, fontSize: 15 }}>Nthawi</span>
         <span className="grow" />
         <button className="icon-btn" title="Settings" aria-label="Settings" onClick={() => go('settings')}>
@@ -113,11 +115,30 @@ export default function Popup() {
           </div>
         )}
         {!isPaused && v.mode !== 'idle' && v.session && <div className="caption ellipsis" style={{ marginTop: -10, maxWidth: '100%' }}>{v.session.title}</div>}
+        {v.mode === 'counting' && !note && (
+          <button
+            className="caption"
+            style={{ marginTop: -6, display: 'inline-flex', alignItems: 'center', gap: 4, color: 'var(--text-3)' }}
+            title="Stop counting time on this page from now on"
+            onClick={async () => {
+              const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+              if (!tab?.url) return;
+              const u = new URL(tab.url);
+              await send('exclude:add', { kind: 'url', value: `${u.hostname}${u.pathname}` });
+              setNote('Not counting this page anymore. Undo it in Settings → Pages not counted.');
+            }}
+          >
+            <Icon name="ban" size={12} /> Don't count this page
+          </button>
+        )}
+        {note && <div className="caption" style={{ marginTop: -6, textAlign: 'center', color: 'var(--on-text)' }}>{note}</div>}
 
         <div className="pp-today">
-          <div className="row">
-            <span style={{ fontWeight: 600 }} className="grow">
-              Today
+          <div className="row" style={{ gap: 10 }}>
+            {goalMs > 0 && <GoalRing pct={todayTotal / goalMs} />}
+            <span style={{ display: 'flex', flexDirection: 'column' }} className="grow">
+              <span style={{ fontWeight: 600 }}>Today</span>
+              {goalMs > 0 && <span className="caption">{todayTotal >= goalMs ? 'Daily goal reached. Nice!' : `${fmtHM(goalMs - todayTotal)} to your ${data.settings.dailyGoalHours}h goal`}</span>}
             </span>
             <span style={{ fontWeight: 600, color: 'var(--accent)' }} className="tnum">
               {fmtHM(todayTotal)}
@@ -164,5 +185,17 @@ export default function Popup() {
         </button>
       </div>
     </div>
+  );
+}
+
+function GoalRing({ pct, size = 32 }) {
+  const r = (size - 6) / 2;
+  const c = 2 * Math.PI * r;
+  const p = Math.min(1, Math.max(0, pct));
+  return (
+    <svg width={size} height={size} aria-label={`${Math.round(p * 100)}% of daily goal`} role="img" style={{ flex: 'none' }}>
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--track-2)" strokeWidth="5" />
+      <circle className="ring-in" cx={size / 2} cy={size / 2} r={r} fill="none" stroke={p >= 1 ? 'var(--on-dot)' : 'var(--accent)'} strokeWidth="5" strokeLinecap="round" strokeDasharray={`${p * c} ${c}`} transform={`rotate(-90 ${size / 2} ${size / 2})`} />
+    </svg>
   );
 }

@@ -48,7 +48,7 @@ export default function Dashboard() {
           <ToolsCard sessions={rangeSessions} />
           <FocusCard range={range} />
         </div>
-        <SessionList sessions={rangeSessions} range={range} grouped={false} title="Today's sessions" sub={`${n} ${n === 1 ? 'session' : 'sessions'} · ${fmtHM(idle)} idle excluded`} />
+        <SessionList sessions={rangeSessions} range={range} grouped={false} title="Today's sessions" sub={`${new Set(rangeSessions.map((x) => x.toolId)).size} ${new Set(rangeSessions.map((x) => x.toolId)).size === 1 ? 'app' : 'apps'} · ${n} ${n === 1 ? 'visit' : 'visits'} · ${fmtHM(idle)} idle excluded`} />
       </>
     );
   }

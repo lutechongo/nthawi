@@ -21,6 +21,8 @@ export default function SessionModal({ mode, session, onClose }) {
   const [end, setEnd] = useState(toTimeInput(session?.end ?? defEnd));
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  const projects = data.settings.projects.filter((p) => !p.archived || p.id === session?.projectId);
+  const [projectId, setProjectId] = useState(session?.projectId || '');
 
   const a = date && start ? combineDateTime(date, start) : NaN;
   const b = date && end ? combineDateTime(date, end) : NaN;
@@ -37,10 +39,11 @@ export default function SessionModal({ mode, session, onClose }) {
     setSaving(true);
     try {
       if (mode === 'add') {
-        await send('session:add', { title, toolId, start: a, end: b });
+        const r = await send('session:add', { title, toolId, start: a, end: b });
+        if (projectId) await send('session:setProject', { ids: [r.id], projectId });
         toast('Session added');
       } else {
-        const patch = running ? { title } : { title, toolId, start: a, end: b };
+        const patch = running ? { title, projectId: projectId || null } : { title, toolId, start: a, end: b, projectId: projectId || null };
         await send('session:update', { id: session.id, patch });
         toast('Session updated');
       }
@@ -83,6 +86,20 @@ export default function SessionModal({ mode, session, onClose }) {
           onKeyDown={(e) => e.key === 'Enter' && save()}
         />
       </div>
+      {projects.length > 0 && (
+        <div className="field">
+          <label htmlFor="s-project">Project</label>
+          <select id="s-project" className="input" style={{ background: 'var(--card)', border: '1px solid var(--border)' }} value={projectId} onChange={(e) => setProjectId(e.target.value)}>
+            <option value="">Automatic (matched by keywords)</option>
+            {projects.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+            <option value="none">No project</option>
+          </select>
+        </div>
+      )}
       {!running && (
         <>
           <div className="field">

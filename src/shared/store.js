@@ -10,7 +10,26 @@ export const KEYS = {
   idleLog: 'idleLog',
   tracker: 'tracker',
   clickup: 'clickup',
+  google: 'google',
+  ai: 'ai',
+  notes: 'notes',
 };
+
+export const DEFAULT_GOOGLE = {
+  clientId: '',
+  token: '',
+  tokenExp: 0,
+  email: '',
+  connected: false,
+  calendarMatch: true, // name Meet sessions after calendar events
+  holidayCalendar: 'en.zm#holiday@group.v.calendar.google.com',
+  sheetId: '',
+  sheetUrl: '',
+  autoSync: true,
+  lastSync: null, // { at, rows } | { at, error }
+};
+
+export const DEFAULT_AI = { apiKey: '', model: 'claude-haiku-5-5' };
 
 // ClickUp connection lives under its own key so it never ends up in JSON exports.
 export const DEFAULT_CLICKUP = {
@@ -23,6 +42,7 @@ export const DEFAULT_CLICKUP = {
   markOvertime: true,
   sendDescriptions: false, // descriptions count as ClickUp "Advanced Time Tracking" (limited on most plans)
   lastSync: null, // { at, day, count }
+  memory: {}, // learned: session title (lower-case) -> task
 };
 
 export const DEFAULT_TRACKER = {
@@ -48,6 +68,9 @@ export async function readAll() {
     idleLog: r.idleLog || [],
     tracker: { ...DEFAULT_TRACKER, ...(r.tracker || {}) },
     clickup: { ...DEFAULT_CLICKUP, ...(r.clickup || {}) },
+    google: { ...DEFAULT_GOOGLE, ...(r.google || {}) },
+    ai: { ...DEFAULT_AI, ...(r.ai || {}) },
+    notes: r.notes || {}, // stand-up notes by day: { [YYYY-MM-DD]: { today, blockers, ai } }
   };
 }
 

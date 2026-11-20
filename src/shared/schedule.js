@@ -1,7 +1,7 @@
 // Working hours: split tracked time into regular hours, lunch and overtime.
 import { DEFAULT_WORK_HOURS } from './constants.js';
 import { sessionDuration } from './store.js';
-import { startOfDay, addDays, MIN } from './time.js';
+import { startOfDay, addDays, MIN, dayKey } from './time.js';
 
 export function hm(str) {
   const [h, m] = String(str || '0:0').split(':').map(Number);
@@ -9,13 +9,22 @@ export function hm(str) {
 }
 
 export function workHours(settings) {
-  return { ...DEFAULT_WORK_HOURS, ...(settings?.workHours || {}) };
+  // Leave and public holidays are days off: any work then counts as overtime.
+  const off = new Map();
+  for (const h of settings?.holidays || []) off.set(h.date, { kind: 'holiday', note: h.name });
+  for (const l of settings?.leave || []) off.set(l.date, { kind: l.kind || 'leave', note: l.note || '' });
+  return { ...DEFAULT_WORK_HOURS, ...(settings?.workHours || {}), off };
+}
+
+/** { kind: 'leave' | 'holiday', note } when the day is a day off, else null. */
+export function dayOff(ts, wh) {
+  return wh.off?.get(dayKey(ts)) || null;
 }
 
 /** Regular / lunch windows for the day containing `dayStart`, as [a, b] ms pairs. */
 function windowsFor(dayStart, wh) {
   const dow = new Date(dayStart).getDay();
-  if (!wh.days.includes(dow)) return { work: [], lunch: [] };
+  if (!wh.days.includes(dow) || wh.off?.has(dayKey(dayStart))) return { work: [], lunch: [] };
   const at = (m) => dayStart + m * MIN;
   const s = hm(wh.start);
   const e = hm(wh.end);
@@ -86,5 +95,12 @@ export function dayWindows(dayStart, wh) {
 }
 
 export function isWorkday(ts, wh) {
-  return wh.days.includes(new Date(ts).getDay());
+  return wh.days.includes(new Date(ts).getDay()) && !wh.off?.has(dayKey(ts));
+}
+
+/** The most recent working day before `ts` (skips weekends, leave and holidays; max 14 days back). */
+export function previousWorkday(ts, wh) {
+  let d = addDays(startOfDay(ts), -1);
+  for (let i = 0; i < 14 && !isWorkday(d, wh); i++) d = addDays(d, -1);
+  return d;
 }

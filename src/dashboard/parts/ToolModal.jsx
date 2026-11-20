@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { send } from '../../shared/store.js';
 import { normalizeDomain } from '../../shared/match.js';
 import { SUGGESTED_TOOLS } from '../../shared/constants.js';
-import { Modal, useToast, ToolIcon } from '../../ui/kit.jsx';
+import { Modal, useToast, ToolIcon, requestSiteAccess } from '../../ui/kit.jsx';
 import { useApp } from '../App.jsx';
 import { Icon } from '../../ui/icons.jsx';
 
@@ -14,6 +14,7 @@ export default function ToolModal({ tool, onClose }) {
   const tracked = new Set(data.settings.tools.filter((t) => !t.removed).flatMap((t) => t.domains));
   const suggestions = SUGGESTED_TOOLS.filter((x) => !tracked.has(x.domain));
   const quickAdd = async (x) => {
+    requestSiteAccess([x.domain]);
     try {
       await send('tool:add', { name: x.name, domain: x.domain });
       toast(`${x.name} added`);
@@ -35,6 +36,7 @@ export default function ToolModal({ tool, onClose }) {
   const save = async () => {
     if (!list.length) return setError('Enter at least one website.');
     if (bad.length) return setError(`"${bad[0]}" doesn't look like a website. Try something like notion.so`);
+    requestSiteAccess(list.map(normalizeDomain));
     setSaving(true);
     try {
       if (editing) {

@@ -15,6 +15,14 @@ import Sessions from './pages/Sessions.jsx';
 import Tools from './pages/Tools.jsx';
 import Settings from './pages/Settings.jsx';
 import Help from './pages/Help.jsx';
+import Projects from './pages/Projects.jsx';
+import Reports from './pages/Reports.jsx';
+import SplitModal from './parts/SplitModal.jsx';
+import { projectFor } from '../shared/projects.js';
+import { greeting } from '../shared/greeting.js';
+import Greeting from './parts/Greeting.jsx';
+import { total } from '../shared/stats.js';
+import { rangeFor as _rf, addDays, startOfDay } from '../shared/time.js';
 
 export const Ctx = createContext(null);
 export const useApp = () => useContext(Ctx);
@@ -40,7 +48,7 @@ export function resolveRange(r, now) {
   return rangeFor(r.kind, now);
 }
 
-const TITLES = { '': 'Dashboard', sessions: 'Sessions', tools: 'Tools', settings: 'Settings', help: 'Help' };
+const TITLES = { '': 'Overview', sessions: 'Sessions', reports: 'Reports', projects: 'Projects', tools: 'Tools', settings: 'Settings', help: 'Help' };
 
 export default function App() {
   const data = useAppData();
@@ -52,6 +60,7 @@ export default function App() {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [modal, setModal] = useState(null); // { mode: 'add' | 'edit', session? }
   const [cuDay, setCuDay] = useState(null); // day shown in the ClickUp dialog
+  const [splitting, setSplitting] = useState(null); // session being split
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem('at-side') === '1');
 
   useEffect(() => {
@@ -65,7 +74,7 @@ export default function App() {
   useEffect(() => localStorage.setItem('at-range', JSON.stringify(rangeSel)), [rangeSel]);
   useEffect(() => localStorage.setItem('at-side', collapsed ? '1' : '0'), [collapsed]);
   useEffect(() => {
-    document.title = `${TITLES[route] || 'Dashboard'} · Nthawi`;
+    document.title = `${TITLES[route] || 'Overview'} · Nthawi`;
   }, [route]);
   // #/?review=YYYY-MM-DD (from the end-of-day notification) opens the ClickUp dialog.
   useEffect(() => {
@@ -117,6 +126,22 @@ export default function App() {
         toast(`Exported ${list.length} sessions`);
       },
       clickup: (day) => setCuDay(day ?? Date.now()),
+      split: (s) => setSplitting(s),
+      merge: async (ids) => {
+        try {
+          await send('session:merge', { ids });
+          toast(`Merged ${ids.length} sessions`);
+          return true;
+        } catch (e) {
+          toast(e.message);
+          return false;
+        }
+      },
+      setProject: async (ids, projectId) => {
+        await send('session:setProject', { ids, projectId });
+        const p = data.settings.projects.find((x) => x.id === projectId);
+        toast(projectId === 'none' ? 'Removed from projects' : p ? `Moved to ${p.name}` : 'Project set to automatic');
+      },
       start: () => send('start'),
       stop: () => send('stop'),
       pause: () => send('pause'),
@@ -136,10 +161,29 @@ export default function App() {
   const dateLabel = range.kind === 'today' ? fmtLongDate(range.start) : fmtRangeLabel(range);
 
   const wh = workHours(settings);
-  const ctx = { data, now, tool, range, rangeSel, setRangeSel, go, params, actions, rangeSessions, toast, wh };
+  const project = (s) => projectFor(s, settings.projects);
+  const ctx = { data, now, tool, range, rangeSel, setRangeSel, go, params, actions, rangeSessions, toast, wh, project };
+
+  // Personal greeting on the Overview.
+  const todaySessions = inRange(data.sessions, _rf('today', now));
+  const tracking = data.tracker?.status === 'on' && !!data.tracker?.currentId;
+  const lastEnd = tracking ? null : Math.max(0, ...todaySessions.map((s) => s.end || 0)) || null;
+  const yest = addDays(startOfDay(now), -1);
+  const yd = new Date(yest).getDay();
+  const greet = greeting({
+    now,
+    name: settings.name,
+    wh,
+    todayMs: total(todaySessions, now),
+    goalMs: (settings.dailyGoalHours || 0) * 3600000,
+    lastActiveAt: lastEnd,
+    tracking,
+    firstToday: todaySessions.length === 0,
+    wasOffYesterday: wh.days.includes(yd) && !!wh.off?.has(dayKey(yest)),
+  });
 
   const nav = (r, icon, label, count) => (
-    <button key={r} className={`nav-item ${route === r ? 'on' : ''}`} title={label} onClick={() => go(r)} aria-current={route === r ? 'page' : undefined}>
+    <button key={r} className={`nav-item ${route === r ? 'on' : ''}`} data-tip={collapsed ? label : undefined} aria-label={label} onClick={() => go(r)} aria-current={route === r ? 'page' : undefined}>
       <Icon name={icon} size={16} />
       {!collapsed && <span className="grow">{label}</span>}
       {!collapsed && count != null && <span className="nav-count">{count}</span>}
@@ -151,7 +195,7 @@ export default function App() {
       <div className={`app ${collapsed ? 'collapsed' : ''}`}>
         <aside className="side">
           <div className="side-brand">
-            <Logo size={24} />
+            <Logo size={26} spin={tracking} />
             {!collapsed && <span style={{ fontSize: 16, lineHeight: '24px', fontWeight: 600, whiteSpace: 'nowrap' }}>Nthawi</span>}
             <button className="icon-btn bordered" style={{ marginLeft: collapsed ? 0 : 'auto', width: 28, height: 28 }} title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} onClick={() => setCollapsed(!collapsed)}>
               <Icon name={collapsed ? 'chevsRight' : 'chevsLeft'} size={14} />
@@ -159,11 +203,13 @@ export default function App() {
           </div>
           <nav>
             {collapsed ? <span className="sep" /> : <span className="eyebrow">Main menu</span>}
-            {nav('', 'grid', 'Dashboard')}
+            {nav('', 'grid', 'Overview')}
             {nav('sessions', 'timer', 'Sessions')}
+            {nav('reports', 'list', 'Reports')}
           </nav>
           <nav>
             {collapsed ? <span className="sep" /> : <span className="eyebrow">Manage</span>}
+            {nav('projects', 'folder', 'Projects', settings.projects.filter((p) => !p.archived).length || null)}
             {nav('tools', 'box', 'Tools', activeTools.length)}
             {nav('settings', 'gear', 'Settings')}
           </nav>
@@ -171,14 +217,18 @@ export default function App() {
         </aside>
 
         <main className="main">
-          <header className="header">
-            <h1 className="h-page">{TITLES[route] || 'Dashboard'}</h1>
-            {showRange && (
+          <header className={`header ${isDash ? 'header-dash' : ''}`}>
+            {isDash ? (
+              <Greeting title={greet.title} sub={`${dateLabel}${greet.sub ? ` · ${greet.sub}` : ''}`} settings={settings} onProfile={() => go('settings')} />
+            ) : (
+              <h1 className="h-page">{TITLES[route] || 'Overview'}</h1>
+            )}
+            {showRange && !isDash && (
               <span className="caption" style={{ marginTop: 6, whiteSpace: 'nowrap' }}>
                 {dateLabel}
               </span>
             )}
-            <span className="grow" />
+            {!isDash && <span className="grow" />}
             {showRange && (
               <div className="row" style={{ gap: 16, position: 'relative' }}>
                 <Segmented
@@ -215,13 +265,13 @@ export default function App() {
                 )}
               </div>
             )}
-            <button className="profile-chip" onClick={() => go('settings')} title="Profile settings">
+            {!isDash && <button className="profile-chip" onClick={() => go('settings')} title="Profile settings">
               <Avatar settings={settings} />
               <div style={{ display: 'flex', flexDirection: 'column' }}>
                 <span style={{ fontSize: 12, lineHeight: '16px', fontWeight: 600, whiteSpace: 'nowrap' }}>{settings.name || 'Add your name'}</span>
                 <span style={{ fontSize: 11, lineHeight: '14px', color: 'var(--text-2)', whiteSpace: 'nowrap' }}>{roleLabel(settings.role, settings.roleCustom)}</span>
               </div>
-            </button>
+            </button>}
           </header>
 
           {route === '' && <Dashboard />}
@@ -229,12 +279,15 @@ export default function App() {
           {route === 'tools' && <Tools />}
           {route === 'settings' && <Settings />}
           {route === 'help' && <Help />}
+          {route === 'projects' && <Projects />}
+          {route === 'reports' && <Reports />}
           {!(route in TITLES) && <Dashboard />}
         </main>
       </div>
 
       {modal && <SessionModal mode={modal.mode} session={modal.session} onClose={() => setModal(null)} />}
       {cuDay != null && <ClickUpDialog day={cuDay} onClose={() => setCuDay(null)} />}
+      {splitting && <SplitModal session={splitting} onClose={() => setSplitting(null)} />}
     </Ctx.Provider>
   );
 }

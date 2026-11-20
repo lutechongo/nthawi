@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Nthawi",
   "short_name": "Nthawi",
-  "version": "1.2.1",
+  "version": "1.5.0",
   "description": "Time tracking without the stress. Nthawi quietly logs your focused time in Figma, Meet, Docs and more, so you never have to.",
   "minimum_chrome_version": "120",
   "icons": {
@@ -31,10 +31,26 @@
     "unlimitedStorage",
     "alarms",
     "notifications",
-    "favicon"
+    "favicon",
+    "identity",
+    "scripting"
   ],
   "host_permissions": [
-    "https://api.clickup.com/*"
+    "https://api.clickup.com/*",
+    "https://*.googleapis.com/*",
+    "https://api.anthropic.com/*",
+    "https://*.figma.com/*",
+    "https://figma.com/*",
+    "https://meet.google.com/*",
+    "https://docs.google.com/*",
+    "https://claude.ai/*",
+    "https://mail.google.com/*",
+    "https://calendar.google.com/*",
+    "https://drive.google.com/*"
   ],
-  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxolsTT9uU5Kn7QlrIf/7c1jSpQbe82uS5x36cNxCbkyfNtGYO3gUQMMXOe5fnsnfya7u3KRsRECUoQYco2ohE43pUrIRzZRND2OzXWtrj7QvEN9GhG358pabuWAM8dA6Vj5szW8vq9L4tVx/lsDJsjKJy3OcY4cAMRCwS05A7oRvqX4KT2f1B5k5lWhHUS8o5zeAnrSIepIMVLeLaVUs+LPH6u1lcrRHMzLOBreWODW5DVpJ78Vqjalmc7kGVefSPku2t8MAmgp1mE+V1ux+RDLaH6ZIygIp4xLd+QoIqowvOv6/gNarsEfviqLi2GKGkhBvvZ6p6wkw+hHewDyBGwIDAQAB"
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxolsTT9uU5Kn7QlrIf/7c1jSpQbe82uS5x36cNxCbkyfNtGYO3gUQMMXOe5fnsnfya7u3KRsRECUoQYco2ohE43pUrIRzZRND2OzXWtrj7QvEN9GhG358pabuWAM8dA6Vj5szW8vq9L4tVx/lsDJsjKJy3OcY4cAMRCwS05A7oRvqX4KT2f1B5k5lWhHUS8o5zeAnrSIepIMVLeLaVUs+LPH6u1lcrRHMzLOBreWODW5DVpJ78Vqjalmc7kGVefSPku2t8MAmgp1mE+V1ux+RDLaH6ZIygIp4xLd+QoIqowvOv6/gNarsEfviqLi2GKGkhBvvZ6p6wkw+hHewDyBGwIDAQAB",
+  "optional_host_permissions": [
+    "https://*/*",
+    "http://*/*"
+  ]
 }
